@@ -44,8 +44,6 @@ def convert(from_currency:str, to_currency:str, amount:float):
             "rate": round(rate_to / rate_from, 4)
         }
     
-    
-    
     except Exception as e:
         print("Error:", e)
         
