@@ -2,8 +2,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import create_engine, text
 from decimal import Decimal
-from databse import get_connection
-
+from databse import get_connection #connect to db
 
 app = FastAPI()
 
