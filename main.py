@@ -2,9 +2,15 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import create_engine, text
 from decimal import Decimal
-from databse import get_connection #connect to db
+from databse import engine, check_db_connection
 
 app = FastAPI()
+
+# Run a connection check on startup
+@app.on_event("startup")
+def startup_event():
+    check_db_connection()
+
 
 @app.get("/convert")
 def convert(
@@ -14,7 +20,7 @@ def convert(
 ):
     
     try:
-        with get_connection() as connection:
+        with engine.connect() as connection:
             query = text("SELECT currency_codes, rate FROM exchange_rates WHERE currency_codes IN (:c1, :c2)")
             result = connection.execute(query, {"c1": from_currency, "c2": to_currency})
             
