@@ -1,8 +1,9 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
+from decimal import Decimal
 
 load_dotenv()
 
@@ -19,7 +20,11 @@ except:
     print("DB FAILED")
   
 @app.get("/convert")
-def convert(from_currency:str, to_currency:str, amount:float):
+def convert(
+    from_currency:str= Query(..., min_length=3, max_length=3), 
+    to_currency:str= Query(..., min_length=3, max_length=3), 
+    amount:Decimal = Query(..., gt=0),
+):
     
     try:
         with engine.connect() as connection:
