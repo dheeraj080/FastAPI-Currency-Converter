@@ -1,24 +1,12 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
-import os
 from decimal import Decimal
+from databse import get_connection
 
-load_dotenv()
 
 app = FastAPI()
 
-DATABASE_URL = (os.getenv('SUPABASE_URL'))
-
-try:
-    engine = create_engine(DATABASE_URL)
-    connection = engine.connect()
-    print("DB CONNECTED")
-    connection.close()
-except:
-    print("DB FAILED")
-  
 @app.get("/convert")
 def convert(
     from_currency:str= Query(..., min_length=3, max_length=3), 
@@ -27,7 +15,7 @@ def convert(
 ):
     
     try:
-        with engine.connect() as connection:
+        with get_connection() as connection:
             query = text("SELECT currency_codes, rate FROM exchange_rates WHERE currency_codes IN (:c1, :c2)")
             result = connection.execute(query, {"c1": from_currency, "c2": to_currency})
             
