@@ -11,13 +11,23 @@ class ExchangeRateService:
         # 2. Database interaction
         with engine.connect() as connection:
             query = text(
-                "SELECT currency_codes, rate FROM exchange_rates WHERE currency_codes IN (:c1, :c2)"
+                """
+                SELECT DISTINCT ON (currency_code) currency_code, rate, recorded_at
+                FROM exchange_rates
+                WHERE currency_code IN (:c1, :c2)
+                ORDER BY currency_code, recorded_at DESC
+            """
             )
             result = connection.execute(query, {"c1": c1, "c2": c2})
 
             # Map results to Decimal
-            rates = {row.currency_codes: Decimal(str(row.rate)) for row in result}
-
+            rates = {
+                row.currency_code: {
+                    "rate": Decimal(str(row.rate)),
+                    "timestamp": row.recorded_at,
+                }
+                for row in result
+            }
         # 3. Validation logic
         if c1 not in rates or c2 not in rates:
             missing = [c for c in [c1, c2] if c not in rates]
@@ -25,8 +35,8 @@ class ExchangeRateService:
             raise ValueError(f"Currency codes not found: {', '.join(missing)}")
 
         # 4. Calculation
-        rate_from = rates[c1]
-        rate_to = rates[c2]
+        rate_from = rates[c1]["rate"]
+        rate_to = rates[c2]["rate"]
 
         # Calculate cross-rate
         conversion_rate = rate_to / rate_from
@@ -39,4 +49,5 @@ class ExchangeRateService:
             "to": c2,
             "result": round(converted_amount, 2),
             "rate": round(conversion_rate, 4),
+            "last_updated": rates[c1]["timestamp"],
         }

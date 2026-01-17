@@ -8,7 +8,7 @@ router = APIRouter()
 Limiter = Limiter(key_func=get_remote_address)
 
 
-@router.get("/convert")
+@router.get("/latest/USD")
 @Limiter.limit("20/minute")
 def convert(
     request: Request,
