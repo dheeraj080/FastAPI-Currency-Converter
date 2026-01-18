@@ -1,0 +1,30 @@
+name: Daily crypto Sync
+
+on:
+  schedule:
+    # Runs every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows you to run it manually via the Actions tab
+
+jobs:
+  run-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Execute Python Script
+        env:
+          # Pulls secrets from GitHub Settings into Environment Variables
+          EXCHANGE_KEY: ${{ secrets.GECKO_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: python crypto.py
