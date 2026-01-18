@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fastapi import FastAPI, Depends, Query, APIRouter, Request
-from service import ExchangeRateService
+from service2 import ExchangeRateService
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from datetime import datetime, timezone
@@ -13,8 +13,8 @@ Limiter = Limiter(key_func=get_remote_address)
 @router.get("/latest")
 def convert(
     request: Request,
-    from_currency: str = Query(..., min_length=3, max_length=3),
-    to_currency: str = Query(..., min_length=3, max_length=3),
+    from_currency: str = Query(..., min_length=1, max_length=10),
+    to_currency: str = Query(..., min_length=1, max_length=10),
     amount: Decimal = Query(..., gt=0),
     service: ExchangeRateService = Depends(ExchangeRateService),
 ):
@@ -22,8 +22,9 @@ def convert(
     return result
 
 
+"""
 @Limiter.limit("30/minute")
-@router.get("/ondate")
+@router.get("/ondate")'''''
 def convert_historical(
     request: Request,
     from_currency: str = Query(..., min_length=3, max_length=3),
@@ -36,6 +37,7 @@ def convert_historical(
         date = date.replace(tzinfo=timezone.utc)
     result = service.convert_historical(from_currency, to_currency, amount, date)
     return result
+"""
 
 
 @router.get("/health")
