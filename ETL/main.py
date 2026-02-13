@@ -66,7 +66,7 @@ def capture_historical_rates():
         with engine.begin() as conn:
             # OPTIONAL: Check if data for this timestamp already exists to avoid duplicates
             check_sql = text(
-                "SELECT EXISTS(SELECT 1 FROM rates WHERE recorded_at = :t LIMIT 1)"
+                "SELECT EXISTS(SELECT 1 FROM exchange_rates WHERE recorded_at = :t LIMIT 1)"
             )
             exists = conn.execute(check_sql, {"t": df["recorded_at"].iloc[0]}).scalar()
 
@@ -76,7 +76,7 @@ def capture_historical_rates():
 
             # Bulk Insert
             df.to_sql(
-                name="rates",
+                name="exchange_rates",
                 con=conn,
                 if_exists="append",
                 index=False,
