@@ -2,21 +2,35 @@ name: Daily Exchange Sync
 
 on:
   schedule:
-    # Runs at 01:00 UTC every day (roughly 6:30 AM IST)
+    # Runs at 01:00 UTC every day
     - cron: '0 1 * * *'
-  workflow_dispatch: # Allows you to run it manually via the Actions tab
+  workflow_dispatch:
 
 jobs:
   run-sync:
     runs-on: ubuntu-latest
+    
+    # This sets the default path for all 'run' commands in this job
+    defaults:
+      run:
+        working-directory: ./ETL
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          # We check out the whole repo, but the 'defaults' above 
+          # will move us into the ETL folder for the next steps.
+          sparse-checkout: |
+            ETL
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          # Optional: cache dependencies found inside the ETL folder
+          cache: 'pip'
+          cache-dependency-path: 'ETL/requirements.txt'
 
       - name: Install Dependencies
         run: |
@@ -24,7 +38,6 @@ jobs:
 
       - name: Execute Python Script
         env:
-          # Pulls secrets from GitHub Settings into Environment Variables
           EXCHANGE_KEY: ${{ secrets.EXCHANGE_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: python main.py
