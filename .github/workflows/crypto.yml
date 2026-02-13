@@ -1,0 +1,32 @@
+name: Crypto Data Sync
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs every hour
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # <--- This is the magic for speed
+
+      - name: Install dependencies
+        run: |
+          pip install pandas sqlalchemy psycopg2-binary aiohttp python-dotenv
+
+      - name: Run Scraper
+        env:
+          GECKO_KEY: ${{ secrets.GECKO_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: python crypto.py
