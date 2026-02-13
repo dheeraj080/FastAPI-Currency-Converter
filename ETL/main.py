@@ -1,25 +1,36 @@
 import os
 import requests
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 from dotenv import load_dotenv
 
 # ---------------- CONFIG ---------------- #
 load_dotenv()
 
-# Always .strip() to avoid "Header Injection" or "URL not found" errors
 API_URL = os.getenv("EXCHANGE_KEY", "").strip()
 DB_URL = os.getenv("SUPABASE_URL", "").strip()
 
-# Create engine globally for better connection management
-# pool_pre_ping=True checks if the connection is alive before using it
-engine = create_engine(DB_URL, pool_pre_ping=True)
+# --- FIX: Connection Resilience ---
+# 1. Force SSL: Supabase requires it.
+# 2. Use a connection string that handles IPv4 properly.
+if "sslmode" not in DB_URL:
+    separator = "&" if "?" in DB_URL else "?"
+    DB_URL += f"{separator}sslmode=require"
+
+# Create engine with a longer timeout and pre-ping to handle network jitter
+engine = create_engine(
+    DB_URL,
+    pool_pre_ping=True,
+    connect_args={
+        "connect_timeout": 10,  # Give it a bit more time to handshake
+    },
+)
 
 
 def capture_historical_rates():
-    # 1. Fetch Data with Timeout
+    # 1. Fetch Data
     try:
-        # Added a timeout so the script doesn't hang forever if the API is down
         response = requests.get(API_URL, timeout=15)
         response.raise_for_status()
         data = response.json()
@@ -36,21 +47,18 @@ def capture_historical_rates():
         return
 
     # 2. Vectorized Transformation
-    # Using pd.DataFrame.from_dict is slightly more memory-efficient for large dicts
     df = pd.DataFrame(list(rates_dict.items()), columns=["currency_code", "rate"])
-
-    # 3. Add Timestamp (Vectorized)
     df["recorded_at"] = pd.to_datetime(api_time)
 
-    # 4. Load into PostgreSQL (Optimized)
+    # 3. Load into PostgreSQL
     try:
-        with engine.begin() as connection:  # Use a transaction block
+        with engine.begin() as connection:
             df.to_sql(
                 name="exchange_rates",
                 con=connection,
                 if_exists="append",
                 index=False,
-                chunksize=500,  # Optimal for small-to-medium datasets
+                chunksize=500,
                 method="multi",
             )
         print(f"✅ Successfully saved {len(df)} rates (Timestamp: {api_time})")
