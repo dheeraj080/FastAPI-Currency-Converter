@@ -1,8 +1,10 @@
+import logging
 from decimal import Decimal
 from sqlalchemy import text
 from database import engine
 from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
 
 class ExchangeRateService:
     BASE_CURRENCY = "USD"
@@ -10,6 +12,8 @@ class ExchangeRateService:
     def convert(self, from_currency: str, to_currency: str, amount: Decimal) -> dict:
         # 1. Use values exactly as provided (No .upper() or .strip())
         c1, c2 = from_currency, to_currency
+
+        logger.debug(f"Fetching rates from DB for {c1} and {c2}")
 
         with engine.connect() as connection:
             query = text(
@@ -39,6 +43,8 @@ class ExchangeRateService:
                 }
                 for row in result
             }
+
+        logger.debug(f"DB returned rates: {rates.keys()}")
 
         # 3. Handle Base Currency (Still matching raw input)
         if c1 == self.BASE_CURRENCY:
